@@ -643,12 +643,14 @@ select.inp {
 /* ═══════════════════════════════════════════
    SCAN LINE EFFECT
    ═══════════════════════════════════════════ */
+/*
 body::after {
   display: none;
   content:''; position:fixed; top:0; left:0; right:0; height:2px;
   background:linear-gradient(90deg,transparent,rgba(0,212,255,0.55),transparent);
   animation:scanLine 7s linear infinite; pointer-events:none; z-index:9999;
 }
+*/
 @keyframes scanLine {
   0%{top:0;opacity:0} 5%{opacity:1} 95%{opacity:1} 100%{top:100vh;opacity:0}
 }
