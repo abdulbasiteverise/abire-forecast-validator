@@ -44,7 +44,7 @@ body {
   overflow-x: hidden;
   background-image:
     repeating-linear-gradient(0deg,   transparent, transparent 39px, var(--grid-line) 40px),
-    repeating-linear-gradient(90deg,  transparent, transparent 39px, var(--grid-line) 40px);
+   
 }
 
 /* ── SCROLLBAR ── */
