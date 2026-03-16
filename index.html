@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- ═══ SEO META ═══ -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABIRE | AI Workforce Intelligence Engine | WFM Forecasting Platform</title>
+<meta name="description" content="AI-powered Workforce Management simulator for contact centers. Model service level impact, Erlang staffing, forecast variance, and operational risk in real time.">
+<meta name="keywords" content="workforce management tool, WFM simulator, contact center workforce planning, service level staffing calculator, Erlang staffing simulator, contact center forecasting tool, call center staffing calculator, intraday workforce management, call center analytics platform, WFM capacity planning">
+<meta name="author" content="Basit — Workforce Intelligence Suite">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="ABIRE — AI Workforce Intelligence Engine for Contact Centers">
+<meta property="og:description" content="Real-time WFM forecasting, Erlang staffing, arrival variability, intraday reforecast, and capacity risk simulation for contact center planners.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ABIRE WFM Intelligence Platform">
+<meta name="twitter:description" content="AI-powered contact center workforce planning. Forecast bias, intraday reforecast, Erlang staffing, capacity risk.">
+<link rel="canonical" href="">
+
+<!-- ═══ STRUCTURED DATA ═══ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "ABIRE — Abdul Basit Intelligent Reforecast Engine",
+      "description": "AI-powered Workforce Management Intelligence Platform for contact centers. Provides forecast validation, intraday reforecast, Erlang staffing simulation, arrival variability analysis, and capacity risk modeling.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Any (browser-based)",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "featureList": [
+        "Intraday Workforce Reforecast Engine",
+        "Forecast Bias Detection and Classification",
+        "Erlang-based Staffing Capacity Simulator",
+        "Arrival Pattern Drift Detection",
+        "Historical Variability Index (CV)",
+        "Spike Detection Engine",
+        "Excel Multi-Cell Paste Support",
+        "CSV and API Data Ingestion",
+        "Executive Summary Generator",
+        "Chart.js Visual Analytics"
+      ],
+      "author": { "@type": "Person", "name": "Basit" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is workforce management in contact centers?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Workforce Management (WFM) in contact centers is the systematic process of forecasting inbound contact volumes, scheduling the right number of agents to meet service level targets, and monitoring real-time performance to make intraday adjustments. WFM encompasses demand forecasting, capacity planning, schedule optimization, and intraday management." }
+        },
+        {
+          "@type": "Question",
+          "name": "How do you calculate staffing for a call center?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Call center staffing is calculated using the Erlang C formula, which accounts for call arrival rate, average handle time (AHT), and target service level. The basic steps are: (1) Forecast call volume per interval, (2) Calculate workload = calls × AHT, (3) Apply Erlang C to determine raw agents needed, (4) Apply shrinkage to get scheduled headcount. ABIRE simplifies this by calculating effective agents from scheduled headcount minus shrinkage." }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the Erlang C staffing model?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Erlang C is a mathematical formula developed by A.K. Erlang used to calculate the probability of calls being queued and the number of agents required to meet a given service level. It considers traffic intensity (calls per interval × AHT ÷ interval seconds), number of agents, and service level target. Most WFM software uses Erlang C as the underlying staffing engine." }
+        },
+        {
+          "@type": "Question",
+          "name": "How do WFM teams forecast call volumes?",
+          "acceptedAnswer": { "@type": "Answer", "text": "WFM teams forecast call volumes using historical data analysis, trend identification, and seasonality modeling. Common methods include weighted moving averages, exponential smoothing, and regression analysis. The forecast is typically produced at interval level (15 or 30 minutes) and validated using forecast bias metrics: Bias% = (Actual − Forecast) / Forecast × 100." }
+        },
+        {
+          "@type": "Question",
+          "name": "What is arrival variability in call centers?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Arrival variability measures how unpredictable inbound contact volume is from day to day. It is calculated using the Coefficient of Variation (CV = Standard Deviation / Mean × 100). A CV below 10% indicates stable, predictable demand. CV of 10–20% is moderate variability. Above 20% means high variability, where WFM planners must build larger staffing buffers to absorb demand uncertainty." }
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<!-- ═══════════════════════════════════════
+     HEADER
+     ═══════════════════════════════════════ -->
+<header id="site-header" role="banner">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-logo" aria-hidden="true">AB</div>
+      <div class="brand-text">
+        <h1>ABIRE</h1>
+        <p>Abdul Basit Intelligent Reforecast Engine — Workforce Intelligence Platform</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill" role="status" aria-live="polite">
+        <div class="status-dot idle" id="status-dot"></div>
+        <span id="status-text">IDLE</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     COMMAND BAR
+     ═══════════════════════════════════════ -->
+<nav id="command-bar" aria-label="Platform controls">
+  <div class="command-inner">
+    <span class="cmd-label">⌘ Controls</span>
+    <button class="btn btn-primary" onclick="loadExample()" aria-label="Load example WFM data">⊞ Load Example</button>
+    <button class="btn btn-success" onclick="runAnalysis()" aria-label="Run forecast analysis">▶ Run Analysis</button>
+    <button class="btn btn-warning" onclick="document.getElementById('csv-upload').click()" aria-label="Upload CSV data">⬆ Upload CSV</button>
+    <input type="file" id="csv-upload" accept=".csv" onchange="handleCSVUpload(event)" aria-hidden="true">
+    <button class="btn btn-neutral" onclick="undoLast()" aria-label="Undo last paste">↩ Undo</button>
+    <div class="cmd-sep"></div>
+    <button class="btn btn-purple" onclick="sendEmail()" aria-label="Send email summary">✉ Email Summary</button>
+    <button class="btn btn-neutral" onclick="copySummary()" aria-label="Copy executive summary">⎘ Copy Summary</button>
+    <div class="cmd-sep"></div>
+    <button class="btn btn-danger btn-sm" onclick="resetAll()" aria-label="Reset dashboard">↺ Reset</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════
+     MAIN APP
+     ═══════════════════════════════════════ -->
+<main id="app-main" role="main">
+
+  <!-- ── INTERVAL CONFIGURATION ── -->
+  <section class="mb-14" aria-labelledby="lbl-config">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-config">Interval Configuration</span>
+      <div class="section-line"></div>
+      <span id="week-count-label" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);white-space:nowrap"></span>
+    </div>
+    <div id="interval-config-panel">
+      <div class="config-grid">
+        <div>
+          <div class="inp-lbl">Start Time</div>
+          <input class="inp" id="cfg-start" type="time" value="08:00">
+        </div>
+        <div>
+          <div class="inp-lbl">End Time</div>
+          <input class="inp" id="cfg-end" type="time" value="23:00">
+        </div>
+        <div>
+          <div class="inp-lbl">Interval Length</div>
+          <select class="inp" id="cfg-step">
+            <option value="15" selected>15 minutes (default)</option>
+            <option value="30">30 minutes</option>
+            <option value="60">60 minutes</option>
+          </select>
+        </div>
+        <div>
+          <div class="inp-lbl">Data Source</div>
+          <div class="ds-toggle" role="group" aria-label="Data source mode">
+            <button class="ds-toggle-btn active" data-mode="manual" onclick="setDataMode('manual')">Manual</button>
+            <button class="ds-toggle-btn" data-mode="auto"   onclick="setDataMode('auto')">Auto Feed</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="addWeek()">+ Week</button>
+          <button class="btn btn-neutral btn-sm" onclick="removeWeek()">− Week</button>
+          <button class="btn btn-warning btn-sm" onclick="onConfigChange()">↻ Rebuild</button>
+        </div>
+      </div>
+
+      <!-- API Feed Panel -->
+      <div id="api-panel">
+        <div class="inp-lbl" style="margin-top:12px">API / JSON Ingestion — Today Column</div>
+        <textarea class="api-textarea" id="api-json" placeholder='{"intervals":[{"time":"08:00","volume":20},{"time":"08:15","volume":25},...]}&#10;&#10;Click "Load Example" to see format'></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-primary btn-sm" onclick="ingestAPI()">▶ Ingest JSON</button>
+          <button class="btn btn-neutral btn-sm" onclick="loadAPIExample()">⊞ Load Example JSON</button>
+        </div>
+      </div>
+
+      <!-- Validation bar -->
+      <div id="validation-bar"></div>
+      <!-- Undo bar -->
+      <div id="undo-bar"></div>
+    </div>
+  </section>
+
+  <!-- ── BULK PASTE PANELS ── -->
+  <section class="mb-14" aria-labelledby="lbl-bulk">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-bulk">Bulk Column Entry — Paste from Excel</span>
+      <div class="section-line"></div>
+      <button class="btn btn-neutral btn-sm" onclick="dismissPreview()" style="margin-left:8px">✕ Close Preview</button>
+    </div>
+    <div id="bulk-panel">
+      <p style="font-size:10px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;margin-bottom:12px;letter-spacing:0.5px">
+        Paste a column of values from Excel into any box below then click Apply. Or click a table cell and press Ctrl+V to paste directly.
+      </p>
+      <div class="bulk-cols" id="bulk-cols-container">
+        <!-- Generated by JS -->
+      </div>
+      <!-- Paste Preview -->
+      <div id="paste-preview">
+        <div id="paste-preview-title"></div>
+        <div id="paste-preview-content"></div>
+        <div class="preview-actions">
+          <button class="btn btn-neutral btn-sm" onclick="dismissPreview()">✕ Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── INTERVAL TABLE ── -->
+  <section class="mb-20" aria-labelledby="lbl-table">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-table">Interval Data Grid</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="card" style="padding:0">
+      <div id="table-wrapper">
+        <table id="interval-table" aria-label="Interval volume data">
+          <thead id="tbl-head"></thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FORECAST INPUTS ── -->
+  <section class="mb-14" aria-labelledby="lbl-inputs">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-inputs">Forecast & Intraday Inputs</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="inputs-5">
+      <div class="card">
+        <div class="card-title">Daily Forecast
+          <span class="info-icon" tabindex="0" aria-label="Daily Forecast help">ⓘ
+            <div class="tt">
+              <div class="tt-title">Daily Forecast</div>
+              <div class="tt-lbl">What it means</div>
+              <div class="tt-body">Total expected contact volume for the day produced by the WFM planning system before operations begin.</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">Baseline for all reforecast calculations. Higher accuracy = better staffing decisions.</div>
+            </div>
+          </span>
+        </div>
+        <input class="inp" id="daily-forecast" type="number" value="2200" min="0">
+      </div>
+      <div class="card">
+        <div class="card-title">Actual Calls (So Far)
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Actual Calls Received</div>
+              <div class="tt-lbl">What it means</div>
+              <div class="tt-body">Real-time count of contacts received from start of day to the current interval.</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Sum of all interval actuals to now</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">Compare against expected to detect early over/under-delivery of volume.</div>
+            </div>
+          </span>
+        </div>
+        <input class="inp" id="actual-calls" type="number" value="1340" min="0">
+      </div>
+      <div class="card">
+        <div class="card-title">Hist. Completion % (by now)
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Historical Completion %</div>
+              <div class="tt-lbl">What it means</div>
+              <div class="tt-body">Percentage of daily volume typically received by the current time of day, based on historical patterns.</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Hist% = Calls to now / Total day × 100</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">Typical range 40–70% depending on time of day. Used to derive expected calls.</div>
+            </div>
+          </span>
+        </div>
+        <input class="inp" id="hist-completion" type="number" value="60" min="1" max="100">
+      </div>
+      <div class="card">
+        <div class="card-title">Current Interval</div>
+        <input class="inp" id="current-interval" type="text" value="13:00">
+      </div>
+      <div class="card">
+        <div class="card-title">Interval Length (min)
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Interval Length for Capacity</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Calls/Agent = Interval Secs / AHT</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">Used in capacity simulation. Typically 15 or 30 min.</div>
+            </div>
+          </span>
+        </div>
+        <input class="inp" id="interval-len" type="number" value="30" min="5">
+      </div>
+    </div>
+  </section>
+
+  <!-- ── KPI ROW ── -->
+  <section class="mb-20" id="kpi-row" style="display:none" aria-labelledby="lbl-kpi" aria-live="polite">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-kpi">Live Intelligence Metrics</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="kpi-5">
+      <div class="card">
+        <div class="card-title">Forecast Bias
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Forecast Bias %</div>
+              <div class="tt-lbl">What it means</div>
+              <div class="tt-body">How far the forecast deviates from actual demand. Positive = under-forecast; Negative = over-forecast.</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Bias% = (Actual − Forecast) / Forecast × 100</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">0–5%: Accurate | 5–10%: Moderate | &gt;10%: High Bias</div>
+            </div>
+          </span>
+        </div>
+        <div class="kpi-val" id="kpi-bias">—</div>
+        <div id="bias-badge" class="kpi-sub">—</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Reforecast EOD
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Reforecast End-of-Day</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Corrected = Forecast × (Actual / Expected)</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">Values above original forecast signal higher demand. Use for real-time staffing decisions.</div>
+            </div>
+          </span>
+        </div>
+        <div class="kpi-val c-cyan" id="kpi-reforecast">—</div>
+        <div class="kpi-sub">Corrected Volume</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Variance %
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Intraday Variance %</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Variance% = (Actual − Expected) / Expected × 100</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">Positive = higher than expected. Values beyond ±10% warrant attention.</div>
+            </div>
+          </span>
+        </div>
+        <div class="kpi-val" id="kpi-variance">—</div>
+        <div class="kpi-sub" id="kpi-variance-sub">—</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Demand Variability
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Historical Variability Index (CV)</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">CV = Std Dev / Mean × 100</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">&lt;10%: Stable | 10–20%: Moderate | &gt;20%: High Variability</div>
+            </div>
+          </span>
+        </div>
+        <div class="kpi-val" id="kpi-cv">—</div>
+        <div id="cv-badge" class="kpi-sub">—</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Capacity Risk
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Capacity Risk Level</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Remaining = Corrected FC − Actual<br>Utilization = Remaining / Capacity × 100</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">≤90%: Safe | 90–110%: Moderate | &gt;110%: Critical</div>
+            </div>
+          </span>
+        </div>
+        <div id="kpi-risk-label" class="risk-lbl" style="margin-top:6px">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ANALYSIS SECTION ── -->
+  <section class="mb-20" id="analysis-section" style="display:none" aria-labelledby="lbl-analysis">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-analysis">Intraday Analysis</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="g-3">
+      <!-- Reforecast -->
+      <div class="card">
+        <div class="card-title">Reforecast Engine
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Intraday Reforecast Engine</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Expected = Forecast × Hist%<br>Corrected = Forecast × (Actual / Expected)<br>Variance% = (Actual − Expected) / Expected × 100</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">Corrected above original = higher demand. Escalate staffing.</div>
+            </div>
+          </span>
+        </div>
+        <div class="metric-row"><span class="mr-lbl">Daily Forecast</span><span class="mr-val" id="rf-daily">—</span></div>
+        <div class="metric-row"><span class="mr-lbl">Expected (by now)</span><span class="mr-val" id="rf-expected">—</span></div>
+        <div class="metric-row"><span class="mr-lbl">Actual (so far)</span><span class="mr-val c-green" id="rf-actual">—</span></div>
+        <div class="metric-row"><span class="mr-lbl">Variance %</span><span class="mr-val" id="rf-variance">—</span></div>
+        <div class="metric-row"><span class="mr-lbl">Corrected EOD</span><span class="mr-val c-cyan" id="rf-corrected">—</span></div>
+      </div>
+      <!-- Traffic Pattern -->
+      <div class="card">
+        <div class="card-title">Arrival Pattern
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Traffic Pattern Classification</div>
+              <div class="tt-lbl">Patterns</div>
+              <div class="tt-body">Normal | Front-Loaded | Delayed Arrival | Midday Spike | Evening Surge | Double Peak</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">Use to adjust shift timing, break scheduling, and interval-level staffing.</div>
+            </div>
+          </span>
+        </div>
+        <div class="pattern-center">
+          <div class="pattern-icon-big" id="pattern-icon">📊</div>
+          <div class="pattern-name-big" id="pattern-name">—</div>
+          <div class="pattern-desc-txt" id="pattern-desc">Run analysis to detect pattern</div>
+        </div>
+      </div>
+      <!-- Spike Detection -->
+      <div class="card">
+        <div class="card-title">Spike Detection
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Spike Detection Engine</div>
+              <div class="tt-lbl">Formula</div>
+              <div class="tt-formula">Deviation% = (Actual − Hist Avg) / Hist Avg × 100</div>
+              <div class="tt-lbl">Interpretation</div>
+              <div class="tt-body">&lt;5%: Normal | 5–10%: Mild | 10–15%: Major | &gt;15%: Critical</div>
+            </div>
+          </span>
+        </div>
+        <div class="metric-row"><span class="mr-lbl">Historical Average</span><span class="mr-val" id="spike-hist-avg">—</span></div>
+        <div class="metric-row"><span class="mr-lbl">Today's Volume</span><span class="mr-val c-cyan" id="spike-today">—</span></div>
+        <div class="metric-row"><span class="mr-lbl">Deviation %</span><span class="mr-val" id="spike-dev">—</span></div>
+        <div class="metric-row"><span class="mr-lbl">Severity</span><span id="spike-badge">—</span></div>
+        <div class="metric-row"><span class="mr-lbl">Direction</span><span class="mr-val" id="spike-drift">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CAPACITY RISK SIMULATOR ── -->
+  <section class="mb-20" aria-labelledby="lbl-capacity">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-capacity">Capacity Risk Simulator</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="card">
+      <div class="cap-inputs mb-14">
+        <div>
+          <div class="inp-lbl">Available Agents
+            <span class="info-icon" tabindex="0">ⓘ
+              <div class="tt">
+                <div class="tt-title">Available Agents</div>
+                <div class="tt-lbl">What it means</div>
+                <div class="tt-body">Total agents scheduled for the current interval. Shrinkage is applied to derive effective count.</div>
+              </div>
+            </span>
+          </div>
+          <input class="inp" id="agents" type="number" value="45" min="0">
+        </div>
+        <div>
+          <div class="inp-lbl">AHT (seconds)
+            <span class="info-icon" tabindex="0">ⓘ
+              <div class="tt">
+                <div class="tt-title">Average Handle Time</div>
+                <div class="tt-lbl">Formula</div>
+                <div class="tt-formula">AHT = Talk + Hold + Wrap-up</div>
+                <div class="tt-lbl">Interpretation</div>
+                <div class="tt-body">Typical: 180–420s. Drives per-agent capacity calculation.</div>
+              </div>
+            </span>
+          </div>
+          <input class="inp" id="aht" type="number" value="280" min="1">
+        </div>
+        <div>
+          <div class="inp-lbl">Shrinkage %
+            <span class="info-icon" tabindex="0">ⓘ
+              <div class="tt">
+                <div class="tt-title">Shrinkage %</div>
+                <div class="tt-lbl">Formula</div>
+                <div class="tt-formula">Effective = Agents × (1 − Shrinkage/100)</div>
+                <div class="tt-lbl">Interpretation</div>
+                <div class="tt-body">Industry avg: 25–35%. Includes breaks, training, aux.</div>
+              </div>
+            </span>
+          </div>
+          <input class="inp" id="shrinkage" type="number" value="30" min="0" max="99">
+        </div>
+        <div>
+          <div class="inp-lbl">Interval Length (min)</div>
+          <input class="inp" id="interval-len2" type="number" value="30" min="5" style="display:none">
+          <!-- interval-len is used above — this just for layout balance -->
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);padding:8px 0">Uses Interval Length above</div>
+        </div>
+      </div>
+      <div class="g-4" id="capacity-results" style="display:none">
+        <div class="card" style="background:var(--bg-card2)">
+          <div class="card-title">Effective Agents
+            <span class="info-icon" tabindex="0">ⓘ
+              <div class="tt"><div class="tt-title">Effective Agents</div><div class="tt-formula">Agents × (1 − Shrinkage/100)</div></div>
+            </span>
+          </div>
+          <div class="kpi-val c-cyan" id="cap-effective">—</div>
+          <div class="kpi-sub">After shrinkage</div>
+        </div>
+        <div class="card" style="background:var(--bg-card2)">
+          <div class="card-title">Calls per Agent
+            <span class="info-icon" tabindex="0">ⓘ
+              <div class="tt"><div class="tt-title">Calls per Agent/Interval</div><div class="tt-formula">Interval Secs / AHT</div></div>
+            </span>
+          </div>
+          <div class="kpi-val c-yellow" id="cap-per-agent">—</div>
+          <div class="kpi-sub">Per interval</div>
+        </div>
+        <div class="card" style="background:var(--bg-card2)">
+          <div class="card-title">Total Capacity
+            <span class="info-icon" tabindex="0">ⓘ
+              <div class="tt"><div class="tt-title">Total Interval Capacity</div><div class="tt-formula">Effective Agents × Calls per Agent</div></div>
+            </span>
+          </div>
+          <div class="kpi-val c-green" id="cap-total">—</div>
+          <div class="kpi-sub">Interval contacts</div>
+        </div>
+        <div class="card" style="background:var(--bg-card2)">
+          <div class="card-title">Risk Level</div>
+          <div class="risk-lbl" id="cap-risk-label" style="margin-top:6px">—</div>
+          <div id="cap-risk-sub" class="kpi-sub" style="margin-top:4px">—</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CHARTS ── -->
+  <section class="mb-20" id="charts-section" style="display:none" aria-labelledby="lbl-charts">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-charts">Visual Analytics</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="g-2 mb-14">
+      <div class="card">
+        <div class="card-title">Historical Volume Trend (Daily Totals)</div>
+        <div class="chart-h260"><canvas id="chart-trend" aria-label="Historical volume trend chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Forecast vs Actual (Per Interval)</div>
+        <div class="chart-h260"><canvas id="chart-fa" aria-label="Forecast vs actual per interval chart"></canvas></div>
+      </div>
+    </div>
+    <div class="g-2">
+      <div class="card">
+        <div class="card-title">Expected vs Actual Cumulative Curve</div>
+        <div class="chart-h260"><canvas id="chart-cumulative" aria-label="Cumulative volume comparison chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Demand vs Capacity</div>
+        <div class="chart-h260"><canvas id="chart-dc" aria-label="Demand vs capacity chart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── RECOMMENDATIONS + EXEC SUMMARY ── -->
+  <section class="mb-20" id="recommendations-section" style="display:none" aria-labelledby="lbl-recs">
+    <div class="section-hdr">
+      <span class="section-lbl" id="lbl-recs">Recommendations &amp; Executive Summary</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="g-2">
+      <div class="card">
+        <div class="card-title">Staffing Recommendations
+          <span class="info-icon" tabindex="0">ⓘ
+            <div class="tt">
+              <div class="tt-title">Staffing Recommendation Engine</div>
+              <div class="tt-lbl">Logic</div>
+              <div class="tt-formula">Spike &gt;10% OR Bias &gt;10% → Increase coverage<br>Negative Bias → Redeploy / reduce</div>
+            </div>
+          </span>
+        </div>
+        <div id="recommendations-panel"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Executive Summary
+          <button class="btn btn-sm btn-neutral" onclick="copySummary()" style="margin-left:auto">⎘ Copy</button>
+        </div>
+        <pre id="exec-summary-box" aria-live="polite">Run analysis to generate executive summary…</pre>
+      </div>
+    </div>
+  </section>
+
+</main><!-- END APP-MAIN -->
+
+<!-- ═══════════════════════════════════════
+     SEO LANDING CONTENT
+     ═══════════════════════════════════════ -->
+<section id="seo-content" aria-label="Platform information and documentation">
+  <div class="seo-inner">
+
+    <h1 class="seo-h1"><span>AI Workforce</span> Decision Engine for Contact Centers</h1>
+    <p class="seo-lead">
+      ABIRE is a browser-based Workforce Management intelligence platform designed for WFM analysts, operations managers, and contact center planners who need real-time forecast validation, intraday reforecast, staffing capacity simulation, and arrival pattern detection — with no software installation required.
+    </p>
+
+    <!-- FEATURES GRID -->
+    <h2 class="seo-h2">Real-Time Workforce Simulation</h2>
+    <p class="seo-p">
+      Modern contact center workforce planning demands tools that move as fast as intraday reality. ABIRE's real-time simulation engine continuously recalculates your end-of-day volume forecast based on actual calls received versus what historical patterns predicted for this exact time of day. This means planners no longer wait for the next planning cycle to react — the corrected forecast is available the moment actual data is entered.
+    </p>
+    <p class="seo-p">
+      The reforecast engine uses the formula: <strong>Corrected Forecast = Daily Forecast × (Actual Calls / Expected Calls)</strong>, where Expected Calls = Daily Forecast × Historical Completion %. This provides a mathematically grounded, operationally validated projection that WFM leaders can act on with confidence.
+    </p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">🎯</div>
+        <div class="feature-card-title">Forecast Bias Detection</div>
+        <div class="feature-card-desc">Automatically calculates and classifies forecast bias as Accurate (0–5%), Moderate (5–10%), or High Bias (&gt;10%) using the industry-standard formula: Bias% = (Actual − Forecast) / Forecast × 100.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">⚡</div>
+        <div class="feature-card-title">Intraday Reforecast Engine</div>
+        <div class="feature-card-desc">Recalculates end-of-day volume using actual intraday performance. Provides corrected EOD forecast and variance percentage to drive immediate staffing decisions.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📊</div>
+        <div class="feature-card-title">Historical Variability Index</div>
+        <div class="feature-card-desc">Measures demand predictability using the Coefficient of Variation (CV = Std Dev / Mean). Classifies stability as Stable, Moderate, or High Variability to guide planning buffer decisions.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🔥</div>
+        <div class="feature-card-title">Spike Detection Engine</div>
+        <div class="feature-card-desc">Compares today's volume against historical averages and classifies deviations as Normal, Mild Spike, Major Spike, or Critical Spike with immediate operational guidance.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🧮</div>
+        <div class="feature-card-title">Erlang Capacity Simulator</div>
+        <div class="feature-card-desc">Simulates staffing capacity using effective agents, average handle time, and shrinkage. Calculates utilization rate and classifies capacity risk as Safe, Moderate Risk, or Critical Risk.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📈</div>
+        <div class="feature-card-title">Arrival Pattern Classification</div>
+        <div class="feature-card-desc">Analyzes the shape of intraday traffic and classifies patterns: Normal, Front-Loaded, Delayed Arrival, Midday Spike, Evening Surge, or Double Peak — with actionable scheduling guidance.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📋</div>
+        <div class="feature-card-title">Excel Paste Support</div>
+        <div class="feature-card-desc">Copy interval data directly from Excel and paste into the grid with Ctrl+V. Supports tab-separated, comma-separated, and newline-separated formats. Multi-column paste auto-populates across weeks.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">📁</div>
+        <div class="feature-card-title">CSV &amp; API Data Ingestion</div>
+        <div class="feature-card-desc">Upload historical interval data via CSV or ingest today's actuals via JSON API format. Automatically populates the interval table and recalculates all metrics instantly.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">🕐</div>
+        <div class="feature-card-title">Flexible Operating Hours</div>
+        <div class="feature-card-desc">Configure any start time, end time, and interval length (15, 30, or 60 minutes). The interval table regenerates automatically — supporting operations from single-shift to 24-hour contact centers.</div>
+      </div>
+    </div>
+
+    <!-- STAFFING SECTION -->
+    <h2 class="seo-h2">Contact Center Staffing Forecasting</h2>
+    <h3 class="seo-h3">How Workforce Management Teams Use This Tool</h3>
+    <p class="seo-p">
+      WFM analysts typically begin their day by loading the planned forecast into ABIRE and setting the historical completion percentage for the current time of day. As the day progresses and actual call volumes are recorded, the platform automatically recalculates what the end-of-day volume is likely to be. This allows planners to identify over or under-performance against forecast in real time, rather than discovering the gap at the end of the day.
+    </p>
+    <p class="seo-p">
+      The staffing recommendation engine then synthesises forecast bias, spike detection results, and capacity risk into plain-language operational guidance: whether to escalate staffing, redeploy agents, approve voluntary time off, or maintain the current plan. This closed-loop decision support system is the hallmark of a mature, analytics-driven workforce management operation.
+    </p>
+
+    <h3 class="seo-h3">How Erlang Staffing Models Work</h3>
+    <p class="seo-p">
+      Erlang C is the mathematical backbone of contact center staffing calculations. Developed by Danish engineer A.K. Erlang in the early 20th century for telephone exchange design, the Erlang C formula calculates the minimum number of agents required to achieve a given service level — the percentage of contacts answered within a target time threshold.
+    </p>
+    <p class="seo-p">
+      ABIRE implements a practical capacity simulation using the core components of Erlang staffing: <strong>Effective Agents = Scheduled Agents × (1 − Shrinkage%)</strong> and <strong>Calls per Agent = Interval Seconds / AHT</strong>. Total interval capacity is then derived as Effective Agents × Calls per Agent, which is compared against remaining demand to produce a utilization percentage and risk classification.
+    </p>
+
+    <!-- SERVICE LEVEL SECTION -->
+    <h2 class="seo-h2">Service Level Risk Modeling</h2>
+    <p class="seo-p">
+      Service level — typically expressed as the percentage of contacts answered within X seconds — is the primary KPI of contact center operations. ABIRE's capacity risk model provides an early warning system for service level failures by identifying when remaining demand exceeds current capacity before the situation escalates into a backlog.
+    </p>
+    <p class="seo-p">
+      Utilization above 90% enters the Moderate Risk zone, triggering recommendations to review interval staffing. Utilization above 110% triggers a Critical Risk alert — the signal that demand has exceeded capacity and immediate intervention is required. This risk framework gives WFM leaders a structured decision framework aligned with service level management best practices.
+    </p>
+
+    <!-- VARIABILITY SECTION -->
+    <h2 class="seo-h2">Intraday Workforce Planning</h2>
+    <h3 class="seo-h3">Why Arrival Variability (CV) Matters</h3>
+    <p class="seo-p">
+      Arrival variability is one of the most underappreciated risks in contact center workforce planning. Even a perfectly accurate average forecast can lead to staffing failures if the day-to-day spread of volume is high. The Coefficient of Variation (CV) quantifies this unpredictability: a CV of 5% means demand is consistent and predictable; a CV of 25% means the same average demand could manifest as 75% of forecast on a quiet day and 125% of forecast on a busy day.
+    </p>
+    <p class="seo-p">
+      ABIRE calculates CV across the entered historical weeks and uses it to adjust the confidence level assigned to the corrected forecast. High-variability environments require larger staffing buffers and more conservative service level targets. This insight is embedded directly into the executive summary and staffing recommendation outputs.
+    </p>
+
+    <h3 class="seo-h3">Forecast vs Actual Analysis</h3>
+    <p class="seo-p">
+      The gap between what was forecasted and what actually arrived is the fundamental measure of forecast quality in WFM. ABIRE's Forecast Bias metric provides an immediate, interval-by-interval view of this gap, enabling planners to distinguish between systematic forecast bias (the model consistently under- or over-predicts) and random day-to-day variance (inherent arrival variability).
+    </p>
+    <p class="seo-p">
+      Systematic positive bias above 10% indicates the forecasting model needs recalibration — likely through trend adjustment, seasonal indexing review, or driver-based forecasting refinement. Random variance above 20% CV indicates that the WFM team should consider adding safety staffing buffers and implementing more responsive intraday management procedures.
+    </p>
+
+    <!-- FAQ -->
+    <h2 class="seo-h2">Frequently Asked Questions</h2>
+    <div id="faq-list" aria-label="Frequently asked questions">
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <div class="faq-q" itemprop="name">What is workforce management in contact centers?</div>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <span itemprop="text">Workforce Management (WFM) in contact centers is the systematic process of forecasting inbound contact volumes, scheduling the right number of agents to meet service level targets, and monitoring real-time performance to make intraday adjustments. WFM encompasses demand forecasting, capacity planning, schedule optimisation, intraday management, and performance analytics. Modern WFM platforms combine historical data analysis with real-time monitoring to enable data-driven staffing decisions.</span>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <div class="faq-q" itemprop="name">How do you calculate staffing for a call center?</div>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <span itemprop="text">Call center staffing is calculated in steps: (1) Forecast call volume per interval using historical patterns; (2) Calculate workload = calls × average handle time in hours; (3) Apply the Erlang C formula to determine raw agents needed for target service level; (4) Apply shrinkage (Scheduled Agents = Raw Agents ÷ (1 − Shrinkage%)) to get the final headcount required. ABIRE simplifies this by calculating effective agents from scheduled headcount and shrinkage, then deriving capacity and risk level from that base.</span>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <div class="faq-q" itemprop="name">What is the Erlang C staffing model?</div>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <span itemprop="text">Erlang C is a mathematical formula developed by A.K. Erlang used to calculate the probability that an incoming call will be queued and the number of agents required to meet a given service level. The formula accounts for traffic intensity (calls × AHT ÷ interval seconds), number of agents, and the service level target. It is the standard staffing model used in virtually all commercial WFM software platforms. The key insight of Erlang C is that staffing requirements are non-linear: as occupancy increases beyond ~85%, additional agents are needed disproportionately to maintain service levels.</span>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <div class="faq-q" itemprop="name">How do WFM teams forecast call volumes?</div>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <span itemprop="text">WFM teams forecast call volumes using a combination of historical data analysis, trend identification, and seasonality modelling. Common techniques include weighted moving averages, exponential smoothing, and regression-based driver forecasting. Forecasts are produced at interval level (typically 15 or 30 minutes) by distributing a daily total using historical arrival patterns. Forecast accuracy is tracked using bias metrics (Bias% = (Actual − Forecast) / Forecast × 100) and Mean Absolute Percentage Error (MAPE). Intraday reforecasting corrects the original forecast as actual data arrives throughout the day.</span>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <div class="faq-q" itemprop="name">What is arrival variability in call centers?</div>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <span itemprop="text">Arrival variability measures how unpredictable inbound contact volume is from day to day. It is calculated using the Coefficient of Variation: CV = (Standard Deviation / Mean) × 100. A CV below 10% indicates stable, predictable demand where the forecast model will perform reliably. A CV of 10–20% signals moderate variability requiring safety staffing buffers. Above 20% indicates high variability — here, WFM planners must build significant buffers (typically 10–15% above modelled requirement) and implement more responsive intraday management protocols to prevent service level failures.</span>
+        </div>
+      </div>
+      <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <div class="faq-q" itemprop="name">What is intraday reforecast in workforce management?</div>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <span itemprop="text">Intraday reforecast is the process of revising the original daily volume forecast during the operating day based on actual calls received. The revised (corrected) forecast is calculated as: Corrected Forecast = Daily Forecast × (Actual Calls ÷ Expected Calls by now). This gives WFM managers an updated picture of what the end-of-day total is likely to be, enabling timely decisions about bringing in additional agents, approving voluntary time off, adjusting break schedules, or activating contingency staffing plans.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHARE BAR -->
+    <div class="share-bar">
+      <div class="share-bar-txt">
+        <strong>Share ABIRE with your WFM community.</strong><br>
+        Help other workforce management professionals and contact center planners discover this free analytics tool.
+      </div>
+      <a class="share-li-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fabire.wfm" target="_blank" rel="noopener noreferrer" aria-label="Share on LinkedIn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        Share on LinkedIn
+      </a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════ -->
+<footer id="site-footer" role="contentinfo">
+  <span>ABIRE</span> — WORKFORCE INTELLIGENCE SUITE &nbsp;|&nbsp; BUILT BY <span>BASIT</span> &nbsp;|&nbsp; CONTACT CENTER ANALYTICS PLATFORM
+</footer>
+
+<!-- ═══ SCRIPTS ═══ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="script.js" defer></script>
+
+</body>
+</html>
